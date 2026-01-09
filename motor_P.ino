@@ -11,17 +11,12 @@ const int motorDir = 3;     // PWM pin connected to motor driver input
 const int encoderAPin = 18; // Encoder signal pin
 const int encoderBPin = 19; // Encoder signal pin
 
-volatile long encoderCount = 0;
-unsigned long lastTime = 0;
-int dt_ms = 300;
-int dt_sec = dt / 1000;
 float rpmFiltered = 0;
 
 volatile unsigned long lastPulse = 0;
 volatile unsigned long pulsePeriod = 0;
 
 const int ppr = 870;
-float actualRPM = 0;
 float actualrpm = 0;
 float desiredRPM = 100; // Target speed
 float Kp = 2;           // Proportional gain

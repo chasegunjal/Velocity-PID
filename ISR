@@ -1,19 +1,6 @@
 #include "globals"
 // #include "headers"
 
-void isr()
-{
-    encoderCount++;
-    // if (digitalRead(encoderBPin) == LOW)
-    // {
-    //     encoderCount++;
-    // }
-    // else
-    // {
-    //     encoderCount--;
-    // }
-}
-
 void pulse_timing_isr()
 {
     unsigned long now = micros();

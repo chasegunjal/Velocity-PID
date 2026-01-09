@@ -1,0 +1,63 @@
+#include "globals"
+// #include "headers"
+
+void isr()
+{
+    if (digitalRead(encoderBPin) == LOW)
+    {
+        encoderCount++;
+    }
+    else
+    {
+        encoderCount--;
+    }
+}
+
+void pulse_timing_isr()
+{
+    unsigned long now = micros();
+    pulsePeriod = now - lastPulse;
+    lastPulse = now;
+}
+
+void readPIDFromSerial()
+{
+    if (!Serial.available())
+        return;
+
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+
+    char key[3];
+    float value;
+
+    char *token = strtok((char *)input.c_str(), " ");
+
+    while (token != NULL)
+    {
+        sscanf(token, "%2[a-zA-Z]", key);
+
+        token = strtok(NULL, " ");
+        if (token == NULL)
+            break;
+
+        value = atof(token);
+
+        if (strcmp(key, "kp") == 0)
+            Kp = value;
+        else if (strcmp(key, "ki") == 0)
+            Ki = value;
+        else if (strcmp(key, "kd") == 0)
+            Kd = value;
+
+        token = strtok(NULL, " ");
+    }
+
+    Serial.print("Updated PID -> ");
+    Serial.print("Kp: ");
+    Serial.print(Kp);
+    Serial.print(" | Ki: ");
+    Serial.print(Ki);
+    Serial.print(" | Kd: ");
+    Serial.println(Kd);
+}

@@ -1,0 +1,42 @@
+#include "globals"
+#include "headers"
+
+void rpm()
+{
+    unsigned long currentTime = millis();
+
+    if (currentTime - lastTime >= dt)
+    { // ---- Calculate RPM ----
+        noInterrupts();
+        long count = encoderCount;
+        encoderCount = 0;
+        interrupts();
+        actualRPM = ((float)count / 870.0) * (60 / 0.3);
+        // Serial.print(" | Actual: ");
+        // Serial.print(actualRPM);
+        rpm_filter();
+        // Serial.print(" | rpmFiltered: ");
+        //  Serial.println(actualRPM);
+        pid(); // Before, pid function was out of 1ms window thus making error constant and executing PID on constant error without having an updated RPM.
+        lastTime = currentTime;
+    }
+    // Serial.print(" | Actual: ");
+    // Serial.println(actualRPM);
+}
+
+void get_rpm()
+{
+    if (pulsePeriod == 0)
+        return;
+    actualrpm = 60.0e6 / (pulsePeriod * ppr);
+    Serial.println(actualrpm);
+    rpm_filter();
+    // pid();
+}
+
+void rpm_filter()
+{
+    float rpmFiltered = 0;
+    float alpha = 0.2; // 0.1–0.3 works well
+    rpmFiltered = alpha * actualRPM + (1 - alpha) * rpmFiltered;
+}

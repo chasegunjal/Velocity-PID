@@ -13,7 +13,9 @@ const int encoderBPin = 19; // Encoder signal pin
 
 volatile long encoderCount = 0;
 unsigned long lastTime = 0;
-int dt = 300;
+int dt_ms = 300;
+int dt_sec = dt / 1000;
+float rpmFiltered = 0;
 
 volatile unsigned long lastPulse = 0;
 volatile unsigned long pulsePeriod = 0;
@@ -26,7 +28,9 @@ float Kp = 2;           // Proportional gain
 float integral = 0;
 float Ki = 0;
 float Kd = 0;
+
 int pwmOutput = 0;
+int pwm_bias = 0; // assign the pwm w.r.t target rpm
 
 void isr();
 void rpm();

@@ -5,13 +5,13 @@ void rpm()
 {
     unsigned long currentTime = millis();
 
-    if (currentTime - lastTime >= dt)
+    if (currentTime - lastTime >= dt_ms)
     { // ---- Calculate RPM ----
         noInterrupts();
         long count = encoderCount;
         encoderCount = 0;
         interrupts();
-        actualRPM = ((float)count / 870.0) * (60 / 0.3);
+        actualRPM = ((float)count / ppr) * (60 / dt_sec);
         // Serial.print(" | Actual: ");
         // Serial.print(actualRPM);
         rpm_filter();
@@ -31,12 +31,11 @@ void get_rpm()
     actualrpm = 60.0e6 / (pulsePeriod * ppr);
     Serial.println(actualrpm);
     rpm_filter();
-    // pid();
+    pid();
 }
 
 void rpm_filter()
 {
-    float rpmFiltered = 0;
     float alpha = 0.2; // 0.1–0.3 works well
     rpmFiltered = alpha * actualRPM + (1 - alpha) * rpmFiltered;
 }

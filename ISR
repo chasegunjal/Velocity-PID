@@ -3,14 +3,15 @@
 
 void isr()
 {
-    if (digitalRead(encoderBPin) == LOW)
-    {
-        encoderCount++;
-    }
-    else
-    {
-        encoderCount--;
-    }
+    encoderCount++;
+    // if (digitalRead(encoderBPin) == LOW)
+    // {
+    //     encoderCount++;
+    // }
+    // else
+    // {
+    //     encoderCount--;
+    // }
 }
 
 void pulse_timing_isr()

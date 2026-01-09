@@ -43,12 +43,11 @@ void setup()
   pinMode(encoderAPin, INPUT_PULLUP);
   pinMode(encoderBPin, INPUT_PULLUP);
   // attachInterrupt(digitalPinToInterrupt(encoderAPin), pulse_timing_isr, RISING);
-  attachInterrupt(digitalPinToInterrupt(encoderAPin), isr, RISING);
+  attachInterrupt(digitalPinToInterrupt(encoderAPin), pulse_timing_isr, RISING);
 }
 
 void loop()
 {
   readPIDFromSerial();
-  rpm();
-  // get_rpm();
+  get_rpm();
 }

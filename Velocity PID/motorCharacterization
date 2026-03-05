@@ -1,0 +1,65 @@
+#include <Arduino.h>
+
+const int motorPin = 2;
+const int encoderPin = 18;
+
+volatile long pulses = 0;
+
+const int PPR = 850;
+
+unsigned long lastTime = 0;
+
+void IRAM_ATTR encoderISR()
+{
+    pulses++;
+}
+
+float measureRPM(int pwm)
+{
+    analogWrite(motorPin,pwm);
+
+    pulses = 0;
+
+    delay(5000);   // wait for steady speed
+
+    long count = pulses;
+
+    float rev = (float)count / PPR;
+
+    float rpm = (rev / 5.0) * 60.0;
+
+    return rpm;
+}
+
+void setup()
+{
+    Serial.begin(115200);
+
+    pinMode(motorPin,OUTPUT);
+    pinMode(encoderPin,INPUT_PULLUP);
+
+    attachInterrupt(digitalPinToInterrupt(encoderPin),encoderISR,RISING);
+
+    delay(2000);
+
+    Serial.println("Motor Characterization Start");
+
+    for(int pwm=40;pwm<=200;pwm+=20)
+    {
+        float rpm = measureRPM(pwm);
+
+        Serial.print("PWM:");
+        Serial.print(pwm);
+
+        Serial.print(" RPM:");
+        Serial.println(rpm);
+
+        delay(2000);
+    }
+
+    analogWrite(motorPin,0);
+
+    Serial.println("Test Finished");
+}
+
+void loop(){}

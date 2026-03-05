@@ -16,10 +16,10 @@ float rpmFiltered = 0;
 volatile unsigned long lastPulse = 0;
 volatile unsigned long pulsePeriod = 0;
 
-const int ppr = 870;
+const int ppr = 850;
 float actualrpm = 0;
-float desiredRPM = 100; // Target speed
-float Kp = 2;           // Proportional gain
+float desiredRPM = 80; // Target speed
+float Kp = 0.5;           // Proportional gain
 float integral = 0;
 float Ki = 0;
 float Kd = 0;
@@ -43,6 +43,5 @@ void setup()
 
 void loop()
 {
-  readPIDFromSerial();
   get_rpm();
 }

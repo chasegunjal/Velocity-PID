@@ -1,7 +1,8 @@
 #include <Arduino.h>
 
+// -------- MOTOR CONFIG --------
 #define NUM_MOTORS 4
-#define SAMPLE_TIME 100   // ms RPM measurement window
+#define SAMPLE_TIME 100
 
 int motorPWM[NUM_MOTORS] = {2,4,6,8};
 int motorDIR[NUM_MOTORS] = {3,5,7,9};
@@ -13,31 +14,39 @@ volatile long pulseCount[NUM_MOTORS] = {0};
 
 const int PPR = 850;
 
+// -------- MOTOR MODEL --------
+// Feedforward constants
+float Kv[NUM_MOTORS]   = {1.45,1.45,1.45,1.45};
+float Bias[NUM_MOTORS] = {32,32,32,32};
+
+// -------- CONTROL LIMITS --------
+const float MAX_RPM = 200;
+
+// -------- CONTROL VARIABLES --------
 float desiredRPM[NUM_MOTORS] = {80,80,80,80};
 float targetRPM[NUM_MOTORS]  = {0};
 
-float actualRPM[NUM_MOTORS] = {0};
-float rpmFiltered[NUM_MOTORS] = {0};
+float actualRPM[NUM_MOTORS]  = {0};
+float rpmFiltered[NUM_MOTORS]= {0};
 
+// -------- PID GAINS --------
 float Kp = 0.6;
 float Ki = 0.2;
 float Kd = 0.02;
 
-float integral[NUM_MOTORS] = {0};
+float integral[NUM_MOTORS]  = {0};
 float prevError[NUM_MOTORS] = {0};
 
 int pwmOutput[NUM_MOTORS] = {0};
-int pwmBias[NUM_MOTORS] = {40,40,40,40};
 
-const float MAX_RPM = 200;
-
+// -------- TIMING --------
 unsigned long prevTime = 0;
 
+// -------- RAMP RATE --------
 float rampRate = 0.15;
 
 
 // -------- ENCODER ISR --------
-
 void IRAM_ATTR encoderISR0(){ pulseCount[0]++; }
 void IRAM_ATTR encoderISR1(){ pulseCount[1]++; }
 void IRAM_ATTR encoderISR2(){ pulseCount[2]++; }
@@ -45,7 +54,6 @@ void IRAM_ATTR encoderISR3(){ pulseCount[3]++; }
 
 
 // -------- RPM CALCULATION --------
-
 void computeRPM()
 {
     static unsigned long lastSample = 0;
@@ -53,7 +61,7 @@ void computeRPM()
     if(millis() - lastSample < SAMPLE_TIME)
         return;
 
-    float dt = (millis()-lastSample)/1000.0;
+    float dt = (millis() - lastSample) / 1000.0;
 
     lastSample = millis();
 
@@ -62,64 +70,66 @@ void computeRPM()
         long count = pulseCount[i];
         pulseCount[i] = 0;
 
-        float rev = (float)count / PPR;
+        float revolutions = (float)count / PPR;
 
-        actualRPM[i] = (rev/dt)*60.0;
+        actualRPM[i] = (revolutions / dt) * 60.0;
 
         float alpha = 0.2;
 
         rpmFiltered[i] =
-            alpha*actualRPM[i] +
-            (1-alpha)*rpmFiltered[i];
+            alpha * actualRPM[i] +
+            (1 - alpha) * rpmFiltered[i];
     }
 }
 
 
 // -------- VELOCITY RAMP --------
-
 void rampRPM()
 {
     for(int i=0;i<NUM_MOTORS;i++)
     {
-        desiredRPM[i] = constrain(desiredRPM[i],-MAX_RPM,MAX_RPM);
+        desiredRPM[i] = constrain(desiredRPM[i], -MAX_RPM, MAX_RPM);
 
-        targetRPM[i] += rampRate*(desiredRPM[i]-targetRPM[i]);
+        targetRPM[i] += rampRate *
+                        (desiredRPM[i] - targetRPM[i]);
     }
 }
 
 
-// -------- PID CONTROL --------
-
-void PIDControl(int i,float dt)
+// -------- PID + FEEDFORWARD --------
+void PIDControl(int i, float dt)
 {
     float error = targetRPM[i] - rpmFiltered[i];
 
-    integral[i] += error*dt;
+    integral[i] += error * dt;
 
-    integral[i] = constrain(integral[i],-500,500);
+    integral[i] = constrain(integral[i], -500, 500);
 
     float derivative =
         (error - prevError[i]) / dt;
 
-    float output =
-        Kp*error +
-        Ki*integral[i] +
-        Kd*derivative;
+    float pid =
+        Kp * error +
+        Ki * integral[i] +
+        Kd * derivative;
 
     prevError[i] = error;
 
-    pwmOutput[i] =
-        pwmBias[i] + output;
+    // -------- FEEDFORWARD MODEL --------
+    float feedforward =
+        Kv[i] * targetRPM[i] + Bias[i];
 
     pwmOutput[i] =
-        constrain(pwmOutput[i],0,255);
+        feedforward + pid;
 
-    analogWrite(motorPWM[i],pwmOutput[i]);
+    pwmOutput[i] =
+        constrain(pwmOutput[i], 0, 255);
+
+    analogWrite(motorPWM[i], pwmOutput[i]);
 }
 
 
-// -------- WHEEL SYNC --------
-
+// -------- WHEEL SYNCHRONIZATION --------
 void synchronizeWheels()
 {
     float avg = 0;
@@ -131,15 +141,20 @@ void synchronizeWheels()
 
     for(int i=0;i<NUM_MOTORS;i++)
     {
-        float syncError = avg - rpmFiltered[i];
+        float syncError =
+            avg - rpmFiltered[i];
 
-        pwmOutput[i] += syncError*0.1;
+        pwmOutput[i] += syncError * 0.1;
+
+        pwmOutput[i] =
+            constrain(pwmOutput[i],0,255);
+
+        analogWrite(motorPWM[i],pwmOutput[i]);
     }
 }
 
 
 // -------- SETUP --------
-
 void setup()
 {
     Serial.begin(115200);
@@ -153,21 +168,38 @@ void setup()
         pinMode(encoderB[i],INPUT_PULLUP);
     }
 
-    attachInterrupt(digitalPinToInterrupt(encoderA[0]),encoderISR0,RISING);
-    attachInterrupt(digitalPinToInterrupt(encoderA[1]),encoderISR1,RISING);
-    attachInterrupt(digitalPinToInterrupt(encoderA[2]),encoderISR2,RISING);
-    attachInterrupt(digitalPinToInterrupt(encoderA[3]),encoderISR3,RISING);
+    attachInterrupt(
+        digitalPinToInterrupt(encoderA[0]),
+        encoderISR0,
+        RISING);
+
+    attachInterrupt(
+        digitalPinToInterrupt(encoderA[1]),
+        encoderISR1,
+        RISING);
+
+    attachInterrupt(
+        digitalPinToInterrupt(encoderA[2]),
+        encoderISR2,
+        RISING);
+
+    attachInterrupt(
+        digitalPinToInterrupt(encoderA[3]),
+        encoderISR3,
+        RISING);
 
     prevTime = millis();
 }
 
 
 // -------- MAIN LOOP --------
-
 void loop()
 {
     unsigned long now = millis();
-    float dt = (now-prevTime)/1000.0;
+
+    float dt =
+        (now - prevTime) / 1000.0;
+
     prevTime = now;
 
     computeRPM();
@@ -175,10 +207,12 @@ void loop()
     rampRPM();
 
     for(int i=0;i<NUM_MOTORS;i++)
-        PIDControl(i,dt);
+        PIDControl(i, dt);
 
     synchronizeWheels();
 
+
+    // -------- DEBUG OUTPUT --------
     Serial.print("RPM: ");
 
     for(int i=0;i<NUM_MOTORS;i++)

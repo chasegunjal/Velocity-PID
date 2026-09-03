@@ -6,7 +6,8 @@ The project focuses on developing a closed-loop motor control system that conver
 
 The controller was developed progressively from single-motor experiments to a complete four-wheel motion-control system.
 
-Hardware
+Hardware:-
+
       ESP32 — Main controller
       4 × DC geared motors
       4 × Quadrature encoders
@@ -112,16 +113,17 @@ Technologies
 
 ESP32 · Embedded C/C++ · DC Motor Control · Encoders · PWM · PID Control · Feedforward Control · Mecanum Kinematics · Robotics · PS5 Controller
 
-Repository Structure
-Velocity PID/
-│
-├── motor_P/
-├── motor_PI/
-├── position_PID/
-├── motorCharacterization
-├── IK_4WheelPid
-├── practical4WheelPid
-└── completed4WheelPID_ps5Integral...
+Repository Structure:-
+
+      Velocity PID/
+      │
+      ├── motor_P/
+      ├── motor_PI/
+      ├── position_PID/
+      ├── motorCharacterization
+            ├── IK_4WheelPid
+      ├── practical4WheelPid
+      └── completed4WheelPID_ps5Integral...
 
 Each file/folder represents a different stage of the controller development, from basic motor experiments to the integrated four-wheel system.
 
